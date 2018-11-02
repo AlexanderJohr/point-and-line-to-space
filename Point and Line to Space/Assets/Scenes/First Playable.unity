@@ -302,8 +302,10 @@ MonoBehaviour:
     type: 2}
   shapePrefab: {fileID: 33758009850483496, guid: 97ef1818b2c8d1a4ab3e337d5ac5e1a1,
     type: 2}
+  myName: Alex
   drawDistanceToCamera: 100
   infiniteLength: 1
+  audioData: {fileID: 0}
 --- !u!1 &772074144
 GameObject:
   m_ObjectHideFlags: 0

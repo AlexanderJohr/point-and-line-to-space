@@ -8,6 +8,8 @@ public class Gameplay : MonoBehaviour
     public LineRenderer linePrefab;
     public MeshFilter shapePrefab;
 
+    public String myName;
+
     public float drawDistanceToCamera;
 
     private Line currentLine;
@@ -23,6 +25,7 @@ public class Gameplay : MonoBehaviour
 
     void Start()
     {
+        print(myName);
         screenCamera = GetComponent<Camera>();
     }
 
@@ -85,8 +88,10 @@ public class Gameplay : MonoBehaviour
                     bool found;
                     Vector2 intersection = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
                     if (found)
-                    {
-                        Vector3 intersectionPoint = screenCamera.ScreenToWorldPoint(intersection) + transform.forward * drawDistanceToCamera;
+                    {                                                                                                   
+                        Vector3 intersectionPoint = screenCamera.ScreenToWorldPoint(intersection)
+                                                  // never set inside this code
+                            + transform.forward * drawDistanceToCamera;
                         intersectionPoints.Add(intersectionPoint);
                     }
                 }
@@ -197,7 +202,6 @@ class Shape
         set
         {
             _vertices = value;
-            _vertices.AddRange(_vertices);
             MeshFilter.mesh.vertices = _vertices.ToArray();
 
             int[] tri = new int[3];
