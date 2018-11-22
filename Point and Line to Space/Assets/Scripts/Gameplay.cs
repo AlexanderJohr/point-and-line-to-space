@@ -22,7 +22,11 @@ public class Gameplay : MonoBehaviour
 
     public bool infiniteLength = true;
     Camera screenCamera;
+
     public AudioSource audioData;
+
+    public AudioSource exampleSound;
+
 
     public int desiredIntersectionPointCount = 3;
 
@@ -89,7 +93,9 @@ public class Gameplay : MonoBehaviour
                     Vector2 b2 = screenCamera.WorldToScreenPoint(b.End);
 
                     bool found;
+                    // I get all the intersection points here:
                     Vector2 intersection = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
+                    // I get all intersection points that are visible on screen
                     bool isInsideScreen = screenCamera.pixelRect.Contains(intersection);
                     if (found && isInsideScreen)
                     {
