@@ -502,14 +502,14 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 880144228}
-        m_MethodName: Play
+        m_MethodName: OnClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
           m_IntArgument: 0
           m_FloatArgument: 0
-          m_StringArgument: Mode Selection
+          m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
     m_TypeName: UnityEngine.UI.Button+ButtonClickedEvent, UnityEngine.UI, Version=1.0.0.0,
@@ -556,9 +556,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 880144223}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 1f71dd6dd5e24436b9ed312f207f3b43, type: 3}
+  m_Script: {fileID: 11500000, guid: e982ecda258e749fc8058232d29d1817, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  SceneName: Mode Selection
 --- !u!1 &1038894630
 GameObject:
   m_ObjectHideFlags: 0

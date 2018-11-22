@@ -3,11 +3,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-public class Menu_Screen : MonoBehaviour
-{
 
-    public void Play()
+
+public class Button : MonoBehaviour {
+    public string SceneName;
+    public void OnClick()
     {
-        SceneManager.LoadScene("Mode Selection");
+        SceneManager.LoadScene(SceneName);
     }
 }
