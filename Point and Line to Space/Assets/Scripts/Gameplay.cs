@@ -99,6 +99,21 @@ public class Gameplay : MonoBehaviour
                     bool isInsideScreen = screenCamera.pixelRect.Contains(intersection);
                     if (found && isInsideScreen)
                     {
+                        Vector2 aDir = a2 - a1;
+                        Vector2 bDir = b2 - b1;
+
+                        float dotProd = Vector2.Dot(aDir, bDir);
+
+                        print(dotProd);
+
+                        if (dotProd > 0)
+                        {
+                            a.IntersectingLines.Add(b);
+                        }
+                        else if (dotProd < 0) {
+                            b.IntersectingLines.Add(a);
+                        }
+
                         intersectionPoints.Add(intersection);
                     }
                 }
@@ -241,11 +256,25 @@ class Line
             Renderer.SetPosition(1, _end);
         }
     }
+
+    public Vector3 Direction
+    {
+        get
+        {
+            return _end - _start;
+        }
+    }
+
+
+
+    public List<Line> IntersectingLines { get; set; }
+
     public LineRenderer Renderer { get; private set; }
 
     public Line(LineRenderer renderer)
     {
         this.Renderer = renderer;
+        IntersectingLines = new List<Line>();
     }
 }
 
