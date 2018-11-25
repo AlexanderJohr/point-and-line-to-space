@@ -18,7 +18,7 @@ public class Gameplay : MonoBehaviour
     private List<Line> drawnLines = new List<Line>();
     private List<Shape> drawnShapes = new List<Shape>();
 
-    List<Vector2> intersectionPoints = new List<Vector2>();
+    List<Intersection> intersections = new List<Intersection>();
 
     public bool infiniteLength = true;
     Camera screenCamera;
@@ -77,7 +77,7 @@ public class Gameplay : MonoBehaviour
             }
         }
 
-        intersectionPoints.Clear();
+        intersections.Clear();
         List<Line> alreadyCheckedLines = new List<Line>();
         foreach (Line a in drawnLines)
         {
@@ -94,42 +94,54 @@ public class Gameplay : MonoBehaviour
 
                     bool found;
                     // I get all the intersection points here:
-                    Vector2 intersection = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
-                    bool isInLineSegmentA = CheckPointIsInLineSegment(a1, a2, intersection);
-                    bool isInLineSegmentB = CheckPointIsInLineSegment(b1, b2, intersection);
+                    Vector2 intersectionPoint = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
+                    bool isInLineSegmentA = CheckPointIsInLineSegment(a1, a2, intersectionPoint);
+                    bool isInLineSegmentB = CheckPointIsInLineSegment(b1, b2, intersectionPoint);
 
                     // I get all intersection points that are visible on screen
-                    bool isInsideScreen = screenCamera.pixelRect.Contains(intersection);
-                    print(String.Format("f: {0}, s: {1}, inA: {2}, inB: {3}", found, isInsideScreen, isInLineSegmentA, isInLineSegmentB));
+                    bool isInsideScreen = screenCamera.pixelRect.Contains(intersectionPoint);
                     if (found && isInsideScreen && isInLineSegmentA && isInLineSegmentB)
-                    {  
-                        Vector2 aDir = a2 - a1;
-                        Vector2 bDir = b2 - b1;
+                    {
 
-                        float dotProd = Vector2.Dot(aDir, bDir);
-
-
-                        if (dotProd > 0)
-                        {
-                            a.IntersectingLines.Add(b);
-                        }
-                        else if (dotProd < 0)
-                        {
-                            b.IntersectingLines.Add(a);
-                        }
-
-                        intersectionPoints.Add(intersection);
+                        Intersection intersection = new Intersection(intersectionPoint, a, b);
+                        a.Intersections.Add(intersection);
+                        b.Intersections.Add(intersection);
+                        intersections.Add(intersection);
                     }
                 }
             }
             alreadyCheckedLines.Add(a);
         }
-        List<Vector2> convexHull = JarvisMarchAlgorithm.GetConvexHull(intersectionPoints);
 
-
-        if (convexHull != null)
+        List<Vector2> maxVertexList = new List<Vector2>();
+        foreach (Intersection intersection in intersections)
         {
-            List<Vector3> convexHull3D = convexHull.Select(v => screenCamera.ScreenToWorldPoint(v) + transform.forward * drawDistanceToCamera).ToList();
+            Intersection firstIntersection = intersection;
+            Intersection nextIntersection = intersection;
+
+            List<Vector2> vertexList = new List<Vector2>();
+
+            do
+            {
+                vertexList.Add(nextIntersection.Vertex);
+
+                Line edge1 = intersection.Edge1;
+                Line edge2 = intersection.Edge2;
+
+                nextIntersection = intersections.Where(i => i != nextIntersection && i.Edge2 == edge1 || i.Edge1 == edge1 || i.Edge2 == edge2 || i.Edge1 == edge2).First();
+
+            } while (nextIntersection != null || nextIntersection != firstIntersection);
+            bool gotCycle = nextIntersection == firstIntersection;
+
+            if (gotCycle && vertexList.Count >= 3 && vertexList.Count > maxVertexList.Count)
+            {
+                maxVertexList = vertexList;
+            }
+        }
+
+        if (maxVertexList.Count >= 3)
+        {
+            List<Vector3> convexHull3D = maxVertexList.Select(v => screenCamera.ScreenToWorldPoint(v) + transform.forward * drawDistanceToCamera).ToList();
 
             Shape shape = new Shape(Instantiate<MeshFilter>(shapePrefab), convexHull3D);
 
@@ -144,30 +156,12 @@ public class Gameplay : MonoBehaviour
 
     private bool CheckPointIsInLineSegment(Vector2 a1, Vector2 a2, Vector2 intersection)
     {
-        return a1.x < intersection.x && a2.x > intersection.x || a2.x < intersection.x && a1.x > intersection.x && 
+        return a1.x < intersection.x && a2.x > intersection.x || a2.x < intersection.x && a1.x > intersection.x &&
                a1.y < intersection.y && a2.y > intersection.y || a2.y < intersection.y && a1.y > intersection.y;
     }
 
-    Vector3 gizmoPos = new Vector3();
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.magenta;
-        foreach (Vector3 intersectionPoint in intersectionPoints)
-        {
 
-            Gizmos.DrawSphere(intersectionPoint, 0.5f);
-        }
-    }
 
-    /// <summary>
-    /// Gets the coordinates of the intersection point of two lines.
-    /// </summary>
-    /// <param name="A1">A point on the first line.</param>
-    /// <param name="A2">Another point on the first line.</param>
-    /// <param name="B1">A point on the second line.</param>
-    /// <param name="B2">Another point on the second line.</param>
-    /// <param name="found">Is set to false of there are no solution. true otherwise.</param>
-    /// <returns>The intersection point coordinates. Returns Vector2.zero if there is no solution.</returns>
     private Vector2 GetIntersectionPointCoordinates(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out bool found)
     {
         float tmp = (B2.x - B1.x) * (A2.y - A1.y) - (B2.y - B1.y) * (A2.x - A1.x);
@@ -239,6 +233,9 @@ public class Gameplay : MonoBehaviour
 
 class Line
 {
+
+    public List<Intersection> Intersections { get; set; }
+
     private Vector3 _start;
     public Vector3 Start
     {
@@ -278,14 +275,13 @@ class Line
 
 
 
-    public List<Line> IntersectingLines { get; set; }
 
     public LineRenderer Renderer { get; private set; }
 
     public Line(LineRenderer renderer)
     {
         this.Renderer = renderer;
-        IntersectingLines = new List<Line>();
+        Intersections = new List<Intersection>();
     }
 }
 
@@ -293,165 +289,6 @@ class Line
 
 public static class JarvisMarchAlgorithm
 {
-    public static List<Vector2> GetConvexHull(List<Vector2> points)
-    {
-        //If we have just 3 points, then they are the convex hull, so return those
-        if (points.Count == 3)
-        {
-            //These might not be ccw, and they may also be colinear
-            return points;
-        }
-
-        //If fewer points, then we cant create a convex hull
-        if (points.Count < 3)
-        {
-            return null;
-        }
-
-
-
-        //The list with points on the convex hull
-        List<Vector2> convexHull = new List<Vector2>();
-
-        //Step 1. Find the vertex with the smallest x coordinate
-        //If several have the same x coordinate, find the one with the smallest z
-        Vector2 startVertex = points[0];
-
-
-        for (int i = 1; i < points.Count; i++)
-        {
-            Vector2 testPos = points[i];
-
-            if (testPos.x < startVertex.x)
-            {
-                startVertex = points[i];
-
-            }
-        }
-
-        //This vertex is always on the convex hull
-        convexHull.Add(startVertex);
-
-        points.Remove(startVertex);
-
-
-
-        //Step 2. Loop to generate the convex hull
-        Vector2 currentPoint = convexHull[0];
-
-        //Store colinear points here - better to create this list once than each loop
-        List<Vector2> colinearPoints = new List<Vector2>();
-
-        int counter = 0;
-
-        while (true)
-        {
-            //After 2 iterations we have to add the start position again so we can terminate the algorithm
-            //Cant use convexhull.count because of colinear points, so we need a counter
-            if (counter == 2)
-            {
-                points.Add(convexHull[0]);
-            }
-
-            //Pick next point randomly
-            Vector2 nextPoint = points[UnityEngine.Random.Range(0, points.Count)];
-
-            //To 2d space so we can see if a point is to the left is the vector ab
-            Vector2 a = currentPoint;
-
-            Vector2 b = nextPoint;
-
-            //Test if there's a point to the right of ab, if so then it's the new b
-            for (int i = 0; i < points.Count; i++)
-            {
-                //Dont test the point we picked randomly
-                if (points[i].Equals(nextPoint))
-                {
-                    continue;
-                }
-
-                Vector2 c = points[i];
-
-                //Where is c in relation to a-b
-                // < 0 -> to the right
-                // = 0 -> on the line
-                // > 0 -> to the left
-                float relation = IsAPointLeftOfVectorOrOnTheLine(a, b, c);
-
-                //Colinear points
-                //Cant use exactly 0 because of floating point precision issues
-                //This accuracy is smallest possible, if smaller points will be missed if we are testing with a plane
-                float accuracy = 0.00001f;
-
-                if (relation < accuracy && relation > -accuracy)
-                {
-                    colinearPoints.Add(points[i]);
-                }
-                //To the right = better point, so pick it as next point on the convex hull
-                else if (relation < 0f)
-                {
-                    nextPoint = points[i];
-
-                    b = nextPoint;
-
-                    //Clear colinear points
-                    colinearPoints.Clear();
-                }
-                //To the left = worse point so do nothing
-            }
-
-
-
-            //If we have colinear points
-            if (colinearPoints.Count > 0)
-            {
-                colinearPoints.Add(nextPoint);
-
-                //Sort this list, so we can add the colinear points in correct order
-                colinearPoints = colinearPoints.OrderBy(n => Vector3.SqrMagnitude(n - currentPoint)).ToList();
-
-                convexHull.AddRange(colinearPoints);
-
-                currentPoint = colinearPoints[colinearPoints.Count - 1];
-
-                //Remove the points that are now on the convex hull
-                for (int i = 0; i < colinearPoints.Count; i++)
-                {
-                    points.Remove(colinearPoints[i]);
-                }
-
-                colinearPoints.Clear();
-            }
-            else
-            {
-                convexHull.Add(nextPoint);
-
-                points.Remove(nextPoint);
-
-                currentPoint = nextPoint;
-            }
-
-            //Have we found the first point on the hull? If so we have completed the hull
-            if (currentPoint.Equals(convexHull[0]))
-            {
-                //Then remove it because it is the same as the first point, and we want a convex hull with no duplicates
-                convexHull.RemoveAt(convexHull.Count - 1);
-
-                break;
-            }
-
-            counter += 1;
-        }
-
-        return convexHull;
-    }
-
-    public static float IsAPointLeftOfVectorOrOnTheLine(Vector2 a, Vector2 b, Vector2 p)
-    {
-        float determinant = (a.x - p.x) * (b.y - p.y) - (a.y - p.y) * (b.x - p.x);
-
-        return determinant;
-    }
 
     public static List<Triangle> TriangulateConvexPolygon(List<Vector3> convexHullpoints)
     {
@@ -487,12 +324,14 @@ public class Triangle
     }
 }
 
-class Intersection{
-    public Vector2 Vertex { get;private set;}
+class Intersection
+{
+    public Vector2 Vertex { get; private set; }
     public Line Edge1 { get; private set; }
     public Line Edge2 { get; private set; }
 
-    public Intersection(Vector2 vertex, Line edge1, Line edge2){
+    public Intersection(Vector2 vertex, Line edge1, Line edge2)
+    {
         Vertex = vertex;
         Edge1 = edge1;
         Edge2 = edge2;
@@ -500,21 +339,3 @@ class Intersection{
 }
 
 
-
-// same / equal to: 
-
-//public class Student
-//{
-//    private string _name;
-//    public string Name
-//    {
-//        get
-//        {
-//            return _name;
-//        }
-//        private set
-//        {
-//            _name = value;
-//        }
-//    }
-//}
