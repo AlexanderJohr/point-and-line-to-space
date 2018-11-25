@@ -28,6 +28,8 @@ public class Gameplay : MonoBehaviour
     public AudioSource exampleSound;
 
 
+
+
     public int desiredIntersectionPointCount = 3;
 
     void Start()
@@ -40,6 +42,9 @@ public class Gameplay : MonoBehaviour
 
     void Update()
     {
+        foreach (Line line in drawnLines){
+            line.IntersectingLines.Clear();
+        }
         if (Input.touchCount >= 2)
         {
             foreach (Touch t in Input.touches)
@@ -109,10 +114,13 @@ public class Gameplay : MonoBehaviour
                         if (dotProd > 0)
                         {
                             a.IntersectingLines.Add(b);
+
                         }
                         else if (dotProd < 0) {
                             b.IntersectingLines.Add(a);
                         }
+
+
 
                         intersectionPoints.Add(intersection);
                     }
