@@ -37,6 +37,7 @@ public class Gameplay : MonoBehaviour
 
     RaycastHit2D hit;
     Vector3[] touches = new Vector3[5];
+    private List<Intersection> remainingIntersectionsToCheck;
 
     void Update()
     {
@@ -116,6 +117,8 @@ public class Gameplay : MonoBehaviour
         List<Vector2> maxVertexList = new List<Vector2>();
         foreach (Intersection intersection in intersections)
         {
+            List<Intersection> remainingIntersectionsToCheck = intersections.Select(i => i).ToList();
+
             Intersection firstIntersection = intersection;
             Intersection nextIntersection = intersection;
 
@@ -128,9 +131,21 @@ public class Gameplay : MonoBehaviour
                 Line edge1 = intersection.Edge1;
                 Line edge2 = intersection.Edge2;
 
-                nextIntersection = intersections.Where(i => i != nextIntersection && i.Edge2 == edge1 || i.Edge1 == edge1 || i.Edge2 == edge2 || i.Edge1 == edge2).First();
+                var nextIntersections = remainingIntersectionsToCheck.Where(i => i != nextIntersection && (i.Edge2 == edge1 || i.Edge1 == edge1 || i.Edge2 == edge2 || i.Edge1 == edge2));
+                if(nextIntersections.Count() > 0){
+                    nextIntersection = nextIntersections.First();
+                    remainingIntersectionsToCheck.Remove(nextIntersection);
+                } else{
+                    nextIntersection = null;
+                }
 
-            } while (nextIntersection != null || nextIntersection != firstIntersection);
+                if(nextIntersection == firstIntersection){
+                    break;
+                    print(vertexList.Count());
+
+                }
+
+            } while (nextIntersection != null);
             bool gotCycle = nextIntersection == firstIntersection;
 
             if (gotCycle && vertexList.Count >= 3 && vertexList.Count > maxVertexList.Count)
