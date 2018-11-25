@@ -28,8 +28,6 @@ public class Gameplay : MonoBehaviour
     public AudioSource exampleSound;
 
 
-
-
     public int desiredIntersectionPointCount = 3;
 
     void Start()
@@ -42,9 +40,6 @@ public class Gameplay : MonoBehaviour
 
     void Update()
     {
-        foreach (Line line in drawnLines){
-            line.IntersectingLines.Clear();
-        }
         if (Input.touchCount >= 2)
         {
             foreach (Touch t in Input.touches)
@@ -100,27 +95,28 @@ public class Gameplay : MonoBehaviour
                     bool found;
                     // I get all the intersection points here:
                     Vector2 intersection = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
+                    bool isInLineSegmentA = CheckPointIsInLineSegment(a1, a2, intersection);
+                    bool isInLineSegmentB = CheckPointIsInLineSegment(b1, b2, intersection);
+
                     // I get all intersection points that are visible on screen
                     bool isInsideScreen = screenCamera.pixelRect.Contains(intersection);
-                    if (found && isInsideScreen)
-                    {
+                    print(String.Format("f: {0}, s: {1}, inA: {2}, inB: {3}", found, isInsideScreen, isInLineSegmentA, isInLineSegmentB));
+                    if (found && isInsideScreen && isInLineSegmentA && isInLineSegmentB)
+                    {  
                         Vector2 aDir = a2 - a1;
                         Vector2 bDir = b2 - b1;
 
                         float dotProd = Vector2.Dot(aDir, bDir);
 
-                        print(dotProd);
 
                         if (dotProd > 0)
                         {
                             a.IntersectingLines.Add(b);
-
                         }
-                        else if (dotProd < 0) {
+                        else if (dotProd < 0)
+                        {
                             b.IntersectingLines.Add(a);
                         }
-
-
 
                         intersectionPoints.Add(intersection);
                     }
@@ -131,7 +127,7 @@ public class Gameplay : MonoBehaviour
         List<Vector2> convexHull = JarvisMarchAlgorithm.GetConvexHull(intersectionPoints);
 
 
-        if (convexHull != null && convexHull.Count > desiredIntersectionPointCount)
+        if (convexHull != null)
         {
             List<Vector3> convexHull3D = convexHull.Select(v => screenCamera.ScreenToWorldPoint(v) + transform.forward * drawDistanceToCamera).ToList();
 
@@ -141,10 +137,17 @@ public class Gameplay : MonoBehaviour
 
             audioData.Play(0);
 
-            // drawnLines.ForEach((line) => Destroy(line.Renderer));
+            drawnLines.ForEach((line) => Destroy(line.Renderer));
             drawnLines.Clear();
         }
     }
+
+    private bool CheckPointIsInLineSegment(Vector2 a1, Vector2 a2, Vector2 intersection)
+    {
+        return a1.x < intersection.x && a2.x > intersection.x || a2.x < intersection.x && a1.x > intersection.x && 
+               a1.y < intersection.y && a2.y > intersection.y || a2.y < intersection.y && a1.y > intersection.y;
+    }
+
     Vector3 gizmoPos = new Vector3();
     private void OnDrawGizmos()
     {
@@ -484,7 +487,17 @@ public class Triangle
     }
 }
 
+class Intersection{
+    public Vector2 Vertex { get;private set;}
+    public Line Edge1 { get; private set; }
+    public Line Edge2 { get; private set; }
 
+    public Intersection(Vector2 vertex, Line edge1, Line edge2){
+        Vertex = vertex;
+        Edge1 = edge1;
+        Edge2 = edge2;
+    }
+}
 
 
 
