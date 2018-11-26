@@ -18,11 +18,15 @@ public class Gameplay : MonoBehaviour
     private List<Line> drawnLines = new List<Line>();
     private List<Shape> drawnShapes = new List<Shape>();
 
-    List<Vector2> intersectionPoints = new List<Vector2>();
+    List<Intersection> intersections = new List<Intersection>();
 
     public bool infiniteLength = true;
     Camera screenCamera;
+
     public AudioSource audioData;
+
+    public AudioSource exampleSound;
+
 
     public int desiredIntersectionPointCount = 3;
 
@@ -33,6 +37,7 @@ public class Gameplay : MonoBehaviour
 
     RaycastHit2D hit;
     Vector3[] touches = new Vector3[5];
+    private List<Intersection> remainingIntersectionsToCheck;
 
     void Update()
     {
@@ -73,7 +78,7 @@ public class Gameplay : MonoBehaviour
             }
         }
 
-        intersectionPoints.Clear();
+        intersections.Clear();
         List<Line> alreadyCheckedLines = new List<Line>();
         foreach (Line a in drawnLines)
         {
@@ -89,22 +94,74 @@ public class Gameplay : MonoBehaviour
                     Vector2 b2 = screenCamera.WorldToScreenPoint(b.End);
 
                     bool found;
-                    Vector2 intersection = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
-                    bool isInsideScreen = screenCamera.pixelRect.Contains(intersection);
-                    if (found && isInsideScreen)
+                    // I get all the intersection points here:
+                    Vector2 intersectionPoint = GetIntersectionPointCoordinates(a1, a2, b1, b2, out found);
+                    bool isInLineSegmentA = CheckPointIsInLineSegment(a1, a2, intersectionPoint);
+                    bool isInLineSegmentB = CheckPointIsInLineSegment(b1, b2, intersectionPoint);
+
+                    // I get all intersection points that are visible on screen
+                    bool isInsideScreen = screenCamera.pixelRect.Contains(intersectionPoint);
+                    if (found && isInsideScreen && isInLineSegmentA && isInLineSegmentB)
                     {
-                        intersectionPoints.Add(intersection);
+
+                        Intersection intersection = new Intersection(intersectionPoint, a, b);
+                        a.Intersections.Add(intersection);
+                        b.Intersections.Add(intersection);
+                        intersections.Add(intersection);
                     }
                 }
             }
             alreadyCheckedLines.Add(a);
         }
-        List<Vector2> convexHull = JarvisMarchAlgorithm.GetConvexHull(intersectionPoints);
 
-
-        if (convexHull != null && convexHull.Count > desiredIntersectionPointCount)
+        List<Vector2> maxVertexList = new List<Vector2>();
+        foreach (Intersection intersection in intersections)
         {
-            List<Vector3> convexHull3D = convexHull.Select(v => screenCamera.ScreenToWorldPoint(v) + transform.forward * drawDistanceToCamera).ToList();
+            List<Intersection> remainingIntersectionsToCheck = intersections.Select(i => i).ToList();
+
+            Intersection firstIntersection = intersection;
+            Intersection nextIntersection = intersection;
+
+            List<Vector2> vertexList = new List<Vector2>();
+
+            do
+            {
+                vertexList.Add(nextIntersection.Vertex);
+
+                Line edge1 = nextIntersection.Edge1;
+                Line edge2 = nextIntersection.Edge2;
+
+                var nextIntersections = remainingIntersectionsToCheck.Where(i => i != nextIntersection && (i.Edge2 == edge1 || i.Edge1 == edge1 || i.Edge2 == edge2 || i.Edge1 == edge2));
+
+                if (nextIntersections.Count() > 0){
+                    nextIntersection = nextIntersections.First();
+                    
+                    print(String.Format("remainingIntersections: {0}", remainingIntersectionsToCheck.Count));
+
+                    remainingIntersectionsToCheck.Remove(nextIntersection);
+                } else{
+                    nextIntersection = null;
+                }
+
+                if(nextIntersection == firstIntersection){
+                    break;
+
+                }
+
+                
+            } while (nextIntersection != null);
+            bool gotCycle = nextIntersection == firstIntersection;
+
+            if (gotCycle && vertexList.Count >= 3 && vertexList.Count > maxVertexList.Count)
+            {
+                maxVertexList = vertexList;
+            }
+        }
+        if (maxVertexList.Count >= 3)
+        {
+            print(String.Format("maxVertexList: {0}", maxVertexList.Count()));
+
+            List<Vector3> convexHull3D = maxVertexList.Select(v => screenCamera.ScreenToWorldPoint(v) + transform.forward * drawDistanceToCamera).ToList();
 
             Shape shape = new Shape(Instantiate<MeshFilter>(shapePrefab), convexHull3D);
 
@@ -112,30 +169,19 @@ public class Gameplay : MonoBehaviour
 
             audioData.Play(0);
 
-            // drawnLines.ForEach((line) => Destroy(line.Renderer));
+            drawnLines.ForEach((line) => Destroy(line.Renderer));
             drawnLines.Clear();
         }
     }
-    Vector3 gizmoPos = new Vector3();
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.magenta;
-        foreach (Vector3 intersectionPoint in intersectionPoints)
-        {
 
-            Gizmos.DrawSphere(intersectionPoint, 0.5f);
-        }
+    private bool CheckPointIsInLineSegment(Vector2 a1, Vector2 a2, Vector2 intersection)
+    {
+        return a1.x < intersection.x && a2.x > intersection.x || a2.x < intersection.x && a1.x > intersection.x &&
+               a1.y < intersection.y && a2.y > intersection.y || a2.y < intersection.y && a1.y > intersection.y;
     }
 
-    /// <summary>
-    /// Gets the coordinates of the intersection point of two lines.
-    /// </summary>
-    /// <param name="A1">A point on the first line.</param>
-    /// <param name="A2">Another point on the first line.</param>
-    /// <param name="B1">A point on the second line.</param>
-    /// <param name="B2">Another point on the second line.</param>
-    /// <param name="found">Is set to false of there are no solution. true otherwise.</param>
-    /// <returns>The intersection point coordinates. Returns Vector2.zero if there is no solution.</returns>
+
+
     private Vector2 GetIntersectionPointCoordinates(Vector2 A1, Vector2 A2, Vector2 B1, Vector2 B2, out bool found)
     {
         float tmp = (B2.x - B1.x) * (A2.y - A1.y) - (B2.y - B1.y) * (A2.x - A1.x);
@@ -207,6 +253,9 @@ public class Gameplay : MonoBehaviour
 
 class Line
 {
+
+    public List<Intersection> Intersections { get; set; }
+
     private Vector3 _start;
     public Vector3 Start
     {
@@ -235,11 +284,24 @@ class Line
             Renderer.SetPosition(1, _end);
         }
     }
+
+    public Vector3 Direction
+    {
+        get
+        {
+            return _end - _start;
+        }
+    }
+
+
+
+
     public LineRenderer Renderer { get; private set; }
 
     public Line(LineRenderer renderer)
     {
         this.Renderer = renderer;
+        Intersections = new List<Intersection>();
     }
 }
 
@@ -247,165 +309,6 @@ class Line
 
 public static class JarvisMarchAlgorithm
 {
-    public static List<Vector2> GetConvexHull(List<Vector2> points)
-    {
-        //If we have just 3 points, then they are the convex hull, so return those
-        if (points.Count == 3)
-        {
-            //These might not be ccw, and they may also be colinear
-            return points;
-        }
-
-        //If fewer points, then we cant create a convex hull
-        if (points.Count < 3)
-        {
-            return null;
-        }
-
-
-
-        //The list with points on the convex hull
-        List<Vector2> convexHull = new List<Vector2>();
-
-        //Step 1. Find the vertex with the smallest x coordinate
-        //If several have the same x coordinate, find the one with the smallest z
-        Vector2 startVertex = points[0];
-
-
-        for (int i = 1; i < points.Count; i++)
-        {
-            Vector2 testPos = points[i];
-
-            if (testPos.x < startVertex.x)
-            {
-                startVertex = points[i];
-
-            }
-        }
-
-        //This vertex is always on the convex hull
-        convexHull.Add(startVertex);
-
-        points.Remove(startVertex);
-
-
-
-        //Step 2. Loop to generate the convex hull
-        Vector2 currentPoint = convexHull[0];
-
-        //Store colinear points here - better to create this list once than each loop
-        List<Vector2> colinearPoints = new List<Vector2>();
-
-        int counter = 0;
-
-        while (true)
-        {
-            //After 2 iterations we have to add the start position again so we can terminate the algorithm
-            //Cant use convexhull.count because of colinear points, so we need a counter
-            if (counter == 2)
-            {
-                points.Add(convexHull[0]);
-            }
-
-            //Pick next point randomly
-            Vector2 nextPoint = points[UnityEngine.Random.Range(0, points.Count)];
-
-            //To 2d space so we can see if a point is to the left is the vector ab
-            Vector2 a = currentPoint;
-
-            Vector2 b = nextPoint;
-
-            //Test if there's a point to the right of ab, if so then it's the new b
-            for (int i = 0; i < points.Count; i++)
-            {
-                //Dont test the point we picked randomly
-                if (points[i].Equals(nextPoint))
-                {
-                    continue;
-                }
-
-                Vector2 c = points[i];
-
-                //Where is c in relation to a-b
-                // < 0 -> to the right
-                // = 0 -> on the line
-                // > 0 -> to the left
-                float relation = IsAPointLeftOfVectorOrOnTheLine(a, b, c);
-
-                //Colinear points
-                //Cant use exactly 0 because of floating point precision issues
-                //This accuracy is smallest possible, if smaller points will be missed if we are testing with a plane
-                float accuracy = 0.00001f;
-
-                if (relation < accuracy && relation > -accuracy)
-                {
-                    colinearPoints.Add(points[i]);
-                }
-                //To the right = better point, so pick it as next point on the convex hull
-                else if (relation < 0f)
-                {
-                    nextPoint = points[i];
-
-                    b = nextPoint;
-
-                    //Clear colinear points
-                    colinearPoints.Clear();
-                }
-                //To the left = worse point so do nothing
-            }
-
-
-
-            //If we have colinear points
-            if (colinearPoints.Count > 0)
-            {
-                colinearPoints.Add(nextPoint);
-
-                //Sort this list, so we can add the colinear points in correct order
-                colinearPoints = colinearPoints.OrderBy(n => Vector3.SqrMagnitude(n - currentPoint)).ToList();
-
-                convexHull.AddRange(colinearPoints);
-
-                currentPoint = colinearPoints[colinearPoints.Count - 1];
-
-                //Remove the points that are now on the convex hull
-                for (int i = 0; i < colinearPoints.Count; i++)
-                {
-                    points.Remove(colinearPoints[i]);
-                }
-
-                colinearPoints.Clear();
-            }
-            else
-            {
-                convexHull.Add(nextPoint);
-
-                points.Remove(nextPoint);
-
-                currentPoint = nextPoint;
-            }
-
-            //Have we found the first point on the hull? If so we have completed the hull
-            if (currentPoint.Equals(convexHull[0]))
-            {
-                //Then remove it because it is the same as the first point, and we want a convex hull with no duplicates
-                convexHull.RemoveAt(convexHull.Count - 1);
-
-                break;
-            }
-
-            counter += 1;
-        }
-
-        return convexHull;
-    }
-
-    public static float IsAPointLeftOfVectorOrOnTheLine(Vector2 a, Vector2 b, Vector2 p)
-    {
-        float determinant = (a.x - p.x) * (b.y - p.y) - (a.y - p.y) * (b.x - p.x);
-
-        return determinant;
-    }
 
     public static List<Triangle> TriangulateConvexPolygon(List<Vector3> convexHullpoints)
     {
@@ -423,42 +326,298 @@ public static class JarvisMarchAlgorithm
         return triangles;
     }
 
+    public static List<Triangle> TriangulateConcavePolygon(List<Vector3> points)
+    {
+        //The list with triangles the method returns
+        List<Triangle> triangles = new List<Triangle>();
 
+        //If we just have three points, then we dont have to do all calculations
+        if (points.Count == 3)
+        {
+            triangles.Add(new Triangle(points[0], points[1], points[2]));
+
+            return triangles;
+        }
+
+
+
+        //Step 1. Store the vertices in a list and we also need to know the next and prev vertex
+        List<Vertex> vertices = new List<Vertex>();
+
+        for (int i = 0; i < points.Count; i++)
+        {
+            vertices.Add(new Vertex(points[i]));
+        }
+
+        //Find the next and previous vertex
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            int nextPos = ClampListIndex(i + 1, vertices.Count);
+
+            int prevPos = ClampListIndex(i - 1, vertices.Count);
+
+            vertices[i].prevVertex = vertices[prevPos];
+
+            vertices[i].nextVertex = vertices[nextPos];
+        }
+
+
+
+        //Step 2. Find the reflex (concave) and convex vertices, and ear vertices
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            CheckIfReflexOrConvex(vertices[i]);
+        }
+
+        //Have to find the ears after we have found if the vertex is reflex or convex
+        List<Vertex> earVertices = new List<Vertex>();
+
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            IsVertexEar(vertices[i], vertices, earVertices);
+        }
+
+
+
+        //Step 3. Triangulate!
+        while (true)
+        {
+            //This means we have just one triangle left
+            if (vertices.Count == 3)
+            {
+                //The final triangle
+                triangles.Add(new Triangle(vertices[0], vertices[1], vertices[2]));
+
+                break;
+            }
+
+            //Make a triangle of the first ear
+            Vertex earVertex = earVertices[0];
+
+            Vertex earVertexPrev = earVertex.prevVertex;
+            Vertex earVertexNext = earVertex.nextVertex;
+
+            Triangle newTriangle = new Triangle(earVertex, earVertexPrev, earVertexNext);
+
+            triangles.Add(newTriangle);
+
+            //Remove the vertex from the lists
+            earVertices.Remove(earVertex);
+
+            vertices.Remove(earVertex);
+
+            //Update the previous vertex and next vertex
+            earVertexPrev.nextVertex = earVertexNext;
+            earVertexNext.prevVertex = earVertexPrev;
+
+            //...see if we have found a new ear by investigating the two vertices that was part of the ear
+            CheckIfReflexOrConvex(earVertexPrev);
+            CheckIfReflexOrConvex(earVertexNext);
+
+            earVertices.Remove(earVertexPrev);
+            earVertices.Remove(earVertexNext);
+
+            IsVertexEar(earVertexPrev, vertices, earVertices);
+            IsVertexEar(earVertexNext, vertices, earVertices);
+        }
+
+        //Debug.Log(triangles.Count);
+
+        return triangles;
+    }
+
+
+
+    //Check if a vertex if reflex or convex, and add to appropriate list
+    private static void CheckIfReflexOrConvex(Vertex v)
+    {
+        v.isReflex = false;
+        v.isConvex = false;
+
+        //This is a reflex vertex if its triangle is oriented clockwise
+        Vector2 a = v.prevVertex.GetPos2D_XZ();
+        Vector2 b = v.GetPos2D_XZ();
+        Vector2 c = v.nextVertex.GetPos2D_XZ();
+
+        if (IsTriangleOrientedClockwise(a, b, c))
+        {
+            v.isReflex = true;
+        }
+        else
+        {
+            v.isConvex = true;
+        }
+    }
+
+
+
+    //Check if a vertex is an ear
+    private static void IsVertexEar(Vertex v, List<Vertex> vertices, List<Vertex> earVertices)
+    {
+        //A reflex vertex cant be an ear!
+        if (v.isReflex)
+        {
+            return;
+        }
+
+        //This triangle to check point in triangle
+        Vector2 a = v.prevVertex.GetPos2D_XZ();
+        Vector2 b = v.GetPos2D_XZ();
+        Vector2 c = v.nextVertex.GetPos2D_XZ();
+
+        bool hasPointInside = false;
+
+        for (int i = 0; i < vertices.Count; i++)
+        {
+            //We only need to check if a reflex vertex is inside of the triangle
+            if (vertices[i].isReflex)
+            {
+                Vector2 p = vertices[i].GetPos2D_XZ();
+
+                //This means inside and not on the hull
+                if (IsPointInTriangle(a, b, c, p))
+                {
+                    hasPointInside = true;
+
+                    break;
+                }
+            }
+        }
+
+        if (!hasPointInside)
+        {
+            earVertices.Add(v);
+        }
+    }
+
+    public static int ClampListIndex(int index, int listSize)
+    {
+        index = ((index % listSize) + listSize) % listSize;
+
+        return index;
+    }
+
+    public static bool IsPointInTriangle(Vector2 p1, Vector2 p2, Vector2 p3, Vector2 p)
+    {
+        bool isWithinTriangle = false;
+
+        //Based on Barycentric coordinates
+        float denominator = ((p2.y - p3.y) * (p1.x - p3.x) + (p3.x - p2.x) * (p1.y - p3.y));
+
+        float a = ((p2.y - p3.y) * (p.x - p3.x) + (p3.x - p2.x) * (p.y - p3.y)) / denominator;
+        float b = ((p3.y - p1.y) * (p.x - p3.x) + (p1.x - p3.x) * (p.y - p3.y)) / denominator;
+        float c = 1 - a - b;
+
+        //The point is within the triangle or on the border if 0 <= a <= 1 and 0 <= b <= 1 and 0 <= c <= 1
+        //if (a >= 0f && a <= 1f && b >= 0f && b <= 1f && c >= 0f && c <= 1f)
+        //{
+        //    isWithinTriangle = true;
+        //}
+
+        //The point is within the triangle
+        if (a > 0f && a < 1f && b > 0f && b < 1f && c > 0f && c < 1f)
+        {
+            isWithinTriangle = true;
+        }
+
+        return isWithinTriangle;
+    }
+
+    public static bool IsTriangleOrientedClockwise(Vector2 p1, Vector2 p2, Vector2 p3)
+    {
+        bool isClockWise = true;
+
+        float determinant = p1.x * p2.y + p3.x * p1.y + p2.x * p3.y - p1.x * p3.y - p3.x * p2.y - p2.x * p1.y;
+
+        if (determinant > 0f)
+        {
+            isClockWise = false;
+        }
+
+        return isClockWise;
+    }
 }
 
 public class Triangle
 {
     //Corners
-    public Vector3 v1;
-    public Vector3 v2;
-    public Vector3 v3;
+    public Vertex v1;
+    public Vertex v2;
+    public Vertex v3;
 
-    public Triangle(Vector3 v1, Vector3 v2, Vector3 v3)
+
+    public Triangle(Vertex v1, Vertex v2, Vertex v3)
     {
         this.v1 = v1;
         this.v2 = v2;
         this.v3 = v3;
     }
+
+    public Triangle(Vector3 v1, Vector3 v2, Vector3 v3)
+    {
+        this.v1 = new Vertex(v1);
+        this.v2 = new Vertex(v2);
+        this.v3 = new Vertex(v3);
+    }
+
+
+
+    //Change orientation of triangle from cw -> ccw or ccw -> cw
+    public void ChangeOrientation()
+    {
+        Vertex temp = this.v1;
+
+        this.v1 = this.v2;
+
+        this.v2 = temp;
+    }
 }
 
+class Intersection
+{
+    public Vector2 Vertex { get; private set; }
+    public Line Edge1 { get; private set; }
+    public Line Edge2 { get; private set; }
 
+    public Intersection(Vector2 vertex, Line edge1, Line edge2)
+    {
+        Vertex = vertex;
+        Edge1 = edge1;
+        Edge2 = edge2;
+    }
+}
 
+public class Vertex
+{
+    public Vector3 position;
 
+    //The outgoing halfedge (a halfedge that starts at this vertex)
+    //Doesnt matter which edge we connect to it
 
-// same / equal to: 
+    //Which triangle is this vertex a part of?
+    public Triangle triangle;
 
-//public class Student
-//{
-//    private string _name;
-//    public string Name
-//    {
-//        get
-//        {
-//            return _name;
-//        }
-//        private set
-//        {
-//            _name = value;
-//        }
-//    }
-//}
+    //The previous and next vertex this vertex is attached to
+    public Vertex prevVertex;
+    public Vertex nextVertex;
+
+    //Properties this vertex may have
+    //Reflex is concave
+    public bool isReflex;
+    public bool isConvex;
+    public bool isEar;
+
+    public Vertex(Vector3 position)
+    {
+        this.position = position;
+    }
+
+    //Get 2d pos of this vertex
+    public Vector2 GetPos2D_XZ()
+    {
+        Vector2 pos_2d_xz = new Vector2(position.x, position.z);
+
+        return pos_2d_xz;
+    }
+}
+

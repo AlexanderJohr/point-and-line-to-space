@@ -211,7 +211,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_BackGroundColor: {r: 1, g: 1, b: 1, a: 0}
   m_projectionMatrixMode: 1
   m_SensorSize: {x: 36, y: 24}
   m_LensShift: {x: 0, y: 0}
@@ -367,8 +367,9 @@ MonoBehaviour:
     type: 2}
   myName: Alex
   drawDistanceToCamera: 100
-  infiniteLength: 1
+  infiniteLength: 0
   audioData: {fileID: 534669908}
+  exampleSound: {fileID: 0}
   desiredIntersectionPointCount: 3
 --- !u!82 &534669908
 AudioSource:
