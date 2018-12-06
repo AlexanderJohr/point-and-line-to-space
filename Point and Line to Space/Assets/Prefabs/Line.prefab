@@ -21,6 +21,8 @@ GameObject:
   - component: {fileID: 4075631805843284}
   - component: {fileID: 120304019711945996}
   - component: {fileID: 82028149113378984}
+  - component: {fileID: 114592965780247914}
+  - component: {fileID: 114006640376214148}
   m_Layer: 0
   m_Name: Line
   m_TagString: Untagged
@@ -136,6 +138,49 @@ AudioSource:
     m_PreInfinity: 2
     m_PostInfinity: 2
     m_RotationOrder: 4
+--- !u!114 &114006640376214148
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1292611352476588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 94b79c37a5c876948ab80f19425d8a1a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &114592965780247914
+MonoBehaviour:
+  m_ObjectHideFlags: 1
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInternal: {fileID: 100100000}
+  m_GameObject: {fileID: 1292611352476588}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 372142912, guid: dc443db3e92b4983b9738c1131f555cb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_SceneId:
+    m_Value: 0
+  m_AssetId:
+    i0: 239
+    i1: 221
+    i2: 69
+    i3: 158
+    i4: 188
+    i5: 172
+    i6: 160
+    i7: 228
+    i8: 138
+    i9: 62
+    i10: 124
+    i11: 126
+    i12: 87
+    i13: 103
+    i14: 143
+    i15: 158
+  m_ServerOnly: 0
+  m_LocalPlayerAuthority: 1
 --- !u!120 &120304019711945996
 LineRenderer:
   m_ObjectHideFlags: 1

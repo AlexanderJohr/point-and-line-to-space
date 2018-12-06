@@ -3,10 +3,11 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Networking;
 
-public class Gameplay : MonoBehaviour
+public class Gameplay : NetworkBehaviour
 {
-    public LineRenderer linePrefab;
+    public Line linePrefab;
     public MeshFilter shapePrefab;
 
     public String myName;
@@ -36,11 +37,72 @@ public class Gameplay : MonoBehaviour
     }
 
     RaycastHit2D hit;
-    Vector3[] touches = new Vector3[5];
+    Vector3?[] touches = new Vector3?[2];
+
+
+
+    [SyncVar(hook = "OnEndChanged")]
+    public Vector3 start;
+
+    [SyncVar(hook = "OnStartChanged")]
+    public Vector3 end;
+
+    void OnStartChanged(Vector3 n)
+    {
+        print(String.Format("OnStartChanged {0}", start));
+
+    }
+
+    void OnEndChanged(Vector3 n)
+    {
+        print(String.Format("OnEndChanged {0}", end));
+
+    }
+
     private List<Intersection> remainingIntersectionsToCheck;
+
+    public Line CurrentLine
+    {
+        get
+        {
+            return currentLine;
+        }
+
+        set
+        {
+            currentLine = value;
+        }
+    }
+
+    [Command]
+    void CmdSetStart(Vector3 newStart)
+    {
+        start = newStart;
+                if(CurrentLine!= null)
+        CurrentLine.StartPoint = start;
+
+    }
+    [Command]
+    void CmdSetEnd(Vector3 newEnd)
+    {
+        end = newEnd;
+        if(CurrentLine!= null)
+            CurrentLine.EndPoint = end;
+    }
+
+    [Command]
+    void CmdCreateLine(Vector3 start, Vector3 end)
+    {
+        print(String.Format("Server start: {0}  end: {1}", start, end));
+            CurrentLine = Instantiate(linePrefab);
+
+        NetworkServer.Spawn(CurrentLine.gameObject);
+    }
 
     void Update()
     {
+
+        if (!isLocalPlayer) return;
         if (Input.touchCount >= 2)
         {
             foreach (Touch t in Input.touches)
@@ -48,33 +110,71 @@ public class Gameplay : MonoBehaviour
                 Vector2 position = Input.GetTouch(t.fingerId).position;
                 touches[t.fingerId] = screenCamera.ScreenToWorldPoint(position) + transform.forward * drawDistanceToCamera;
             }
-
-            Vector3 start = touches[0];
-            Vector3 end = touches[1];
-
-            if (currentLine == null)
-            {
-                currentLine = new Line(Instantiate<LineRenderer>(linePrefab));
-            }
-
-            if (infiniteLength)
-            {
-                Vector3 lineVector = start - end;
-                Vector3 infiniteEnd = end + (lineVector * 1000);
-                Vector3 infiniteStart = start - (lineVector * 1000);
-                start = infiniteStart;
-                end = infiniteEnd;
-            }
-
-            currentLine.Start = start;
-            currentLine.End = end;
         }
         else
         {
-            if (currentLine != null)
+            if (touches[0] != null) {
+                CmdSetStart (touches[0].Value);
+            }
+            if (touches[1] != null)
             {
-                drawnLines.Add(currentLine);
-                currentLine = null;
+                CmdSetEnd(touches[1].Value);
+            }
+
+            //  touches[0] = null;
+            // touches[1] = null;
+        }
+
+
+        if (Input.GetMouseButton(0))
+        {
+            if (touches[0] == null)
+            {
+                touches[0] = screenCamera.ScreenToWorldPoint(Input.mousePosition) + transform.forward * drawDistanceToCamera;
+            }
+            else
+            {
+                touches[1] = screenCamera.ScreenToWorldPoint(Input.mousePosition) + transform.forward * drawDistanceToCamera;
+            }
+        }
+        else
+        {
+            if (touches[0] != null)
+            {
+                CmdSetStart(touches[0].Value);
+            }
+            if (touches[1] != null)
+            {
+                CmdSetEnd(touches[1].Value);
+            }
+
+            touches[0] = null;
+            touches[1] = null;
+        }
+
+
+
+
+        if (start != Vector3.zero && end != Vector3.zero) 
+        {
+
+            if (CurrentLine == null && start != Vector3.zero && end != Vector3.zero)
+            {
+                
+                CmdCreateLine(start, end);
+
+            }
+
+
+
+
+            if (touches[0] == null && touches[1] == null && CurrentLine != null) {
+
+                drawnLines.Add(CurrentLine);
+                CurrentLine = null;
+                CmdSetStart(Vector3.zero);
+                CmdSetEnd(Vector3.zero);
+
             }
         }
 
@@ -88,10 +188,10 @@ public class Gameplay : MonoBehaviour
                 {
 
 
-                    Vector2 a1 = screenCamera.WorldToScreenPoint(a.Start);
-                    Vector2 a2 = screenCamera.WorldToScreenPoint(a.End);
-                    Vector2 b1 = screenCamera.WorldToScreenPoint(b.Start);
-                    Vector2 b2 = screenCamera.WorldToScreenPoint(b.End);
+                    Vector2 a1 = screenCamera.WorldToScreenPoint(a.StartPoint);
+                    Vector2 a2 = screenCamera.WorldToScreenPoint(a.EndPoint);
+                    Vector2 b1 = screenCamera.WorldToScreenPoint(b.StartPoint);
+                    Vector2 b2 = screenCamera.WorldToScreenPoint(b.EndPoint);
 
                     bool found;
                     // I get all the intersection points here:
@@ -133,22 +233,26 @@ public class Gameplay : MonoBehaviour
 
                 var nextIntersections = remainingIntersectionsToCheck.Where(i => i != nextIntersection && (i.Edge2 == edge1 || i.Edge1 == edge1 || i.Edge2 == edge2 || i.Edge1 == edge2));
 
-                if (nextIntersections.Count() > 0){
+                if (nextIntersections.Count() > 0)
+                {
                     nextIntersection = nextIntersections.First();
-                    
+
                     print(String.Format("remainingIntersections: {0}", remainingIntersectionsToCheck.Count));
 
                     remainingIntersectionsToCheck.Remove(nextIntersection);
-                } else{
+                }
+                else
+                {
                     nextIntersection = null;
                 }
 
-                if(nextIntersection == firstIntersection){
+                if (nextIntersection == firstIntersection)
+                {
                     break;
 
                 }
 
-                
+
             } while (nextIntersection != null);
             bool gotCycle = nextIntersection == firstIntersection;
 
@@ -250,60 +354,6 @@ public class Gameplay : MonoBehaviour
     }
 }
 
-
-class Line
-{
-
-    public List<Intersection> Intersections { get; set; }
-
-    private Vector3 _start;
-    public Vector3 Start
-    {
-        get
-        {
-            return _start;
-        }
-        set
-        {
-            _start = value;
-            Renderer.SetPosition(0, _start);
-        }
-    }
-
-    private Vector3 _end;
-
-    public Vector3 End
-    {
-        get
-        {
-            return _end;
-        }
-        set
-        {
-            _end = value;
-            Renderer.SetPosition(1, _end);
-        }
-    }
-
-    public Vector3 Direction
-    {
-        get
-        {
-            return _end - _start;
-        }
-    }
-
-
-
-
-    public LineRenderer Renderer { get; private set; }
-
-    public Line(LineRenderer renderer)
-    {
-        this.Renderer = renderer;
-        Intersections = new List<Intersection>();
-    }
-}
 
 
 
@@ -573,7 +623,7 @@ public class Triangle
     }
 }
 
-class Intersection
+public class Intersection
 {
     public Vector2 Vertex { get; private set; }
     public Line Edge1 { get; private set; }
