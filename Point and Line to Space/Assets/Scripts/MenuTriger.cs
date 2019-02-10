@@ -13,9 +13,7 @@ public class MenuTriger: MonoBehaviour {
             if (touch.phase == TouchPhase.Began)
             {
                 print("Do");
-                GameObject.Find("Canvas").transform.Find("Menu").gameObject.SetActive(true);
-                GameObject.Find("Canvas").transform.Find("Title").gameObject.SetActive(false);
-                GameObject.Find("Canvas").transform.Find("TapScreenToStart").gameObject.SetActive(false);
+                
             }
         }
     }

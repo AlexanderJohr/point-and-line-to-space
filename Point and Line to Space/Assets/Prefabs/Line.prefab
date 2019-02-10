@@ -149,6 +149,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 94b79c37a5c876948ab80f19425d8a1a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  playerOneMaterial: {fileID: 2100000, guid: 379d220006c273f44a15082e134c10e0, type: 2}
+  playerTwoMaterial: {fileID: 2100000, guid: 1a56755cc139e9942a1489bafbfeeed0, type: 2}
+  preReleaseMaterial: {fileID: 0}
+  releaseImpossibleMaterial: {fileID: 2100000, guid: 742f8725eaa105946b4e2cbdf72d8c82,
+    type: 2}
 --- !u!114 &114592965780247914
 MonoBehaviour:
   m_ObjectHideFlags: 1
