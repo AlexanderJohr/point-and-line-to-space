@@ -13,21 +13,17 @@ public class PlayerData : ScriptableObject {
     public bool GameOver { get; set; }
 
     public float RemainingSeconds { get; set; }
-
-
+    
     public Line CurrentLine { get; set; }
     public Line CurrentNetworkLine { get; set; }
     public int OtherPlayerScore { get; set; }
-
-
+    
     public Dictionary<int, Line> otherPlayerLines = new Dictionary<int, Line>();
     public Dictionary<int, Line> localPlayerLines = new Dictionary<int, Line>();
 
     public Dictionary<int, Shape> otherPlayerShapes = new Dictionary<int, Shape>();
     public Dictionary<int, Shape> localPlayerShapes = new Dictionary<int, Shape>();
 
-
-    
     public Vector3? StartPoint;
     public Vector3? EndPoint;
 

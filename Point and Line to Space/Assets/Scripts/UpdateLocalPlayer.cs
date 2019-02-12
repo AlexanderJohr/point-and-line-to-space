@@ -7,7 +7,6 @@ using UnityEngine.Networking;
 
 public class UpdateLocalPlayer : NetworkBehaviour
 {
-
     Vector3?[] touches = new Vector3?[2];
     Camera screenCamera;
     List<Intersection> intersections = new List<Intersection>();
@@ -23,7 +22,8 @@ public class UpdateLocalPlayer : NetworkBehaviour
     {
 
         if (isLocalPlayer)
-        {            data.GameOver = false;
+        {
+            data.GameOver = false;
 
             screenCamera = GetComponentsInChildren<Camera>()[0];
             AudioListener audioListener = GetComponentsInChildren<AudioListener>()[0];
@@ -31,9 +31,27 @@ public class UpdateLocalPlayer : NetworkBehaviour
             screenCamera.enabled = true;
             audioListener.enabled = true;
 
-            data.Ink = 100;
+            data.localPlayerLineIndex = 0;
+            data.localPlayerShapeIndex = 0;
             data.Score = 0;
-            data.RemainingSeconds = 60;
+            data.Ink = 100f;
+            data.InkNeededForCurrentLine = 0f;
+            data.GameOver = false;
+
+            data.RemainingSeconds = 30;
+
+            data.CurrentLine = null;
+            data.CurrentNetworkLine = null;
+            data.OtherPlayerScore = 0;
+
+            data.otherPlayerLines = new Dictionary<int, Line>();
+            data.localPlayerLines = new Dictionary<int, Line>();
+
+            data.otherPlayerShapes = new Dictionary<int, Shape>();
+            data.localPlayerShapes = new Dictionary<int, Shape>();
+
+            data.StartPoint = null;
+            data.EndPoint = null;
         }
 
 
@@ -48,10 +66,10 @@ public class UpdateLocalPlayer : NetworkBehaviour
 
         if (data.RemainingSeconds < 20)
         {
-            backgroundAudioMixerControl.TransitionTo(4);
         }
 
-        if (data.RemainingSeconds < 0) {
+        if (data.RemainingSeconds < 0)
+        {
             data.GameOver = true;
             CmdSubmitScore((int)data.Score);
         }
@@ -135,10 +153,12 @@ public class UpdateLocalPlayer : NetworkBehaviour
                 if (data.CurrentLine.Magnitude > data.Ink)
                 {
                     data.CurrentLine.InsufficientInk = true;
+                    backgroundAudioMixerControl.TransitionTo(4);
                 }
                 else
                 {
                     data.CurrentLine.InsufficientInk = false;
+                    backgroundAudioMixerControl.TransitionTo(3);
                 }
 
 
@@ -257,7 +277,8 @@ public class UpdateLocalPlayer : NetworkBehaviour
             List<Triangle> triangles = TriangulateConvexPolygon(convexHull3D);
             var score = triangles.Sum(i => i.SurfaceArea);
 
-            if (score > 2) {
+            if (score > 2)
+            {
                 data.Score += score;
 
                 Shape shape = Instantiate(shapePrefab);
@@ -310,10 +331,12 @@ public class UpdateLocalPlayer : NetworkBehaviour
             if (currentLineIntersectsShape)
             {
                 data.CurrentLine.IntersectsShape = true;
+                backgroundAudioMixerControl.TransitionTo(4);
             }
             else
             {
                 data.CurrentLine.IntersectsShape = false;
+                backgroundAudioMixerControl.TransitionTo(3);
             }
         }
 
@@ -373,7 +396,7 @@ public class UpdateLocalPlayer : NetworkBehaviour
     }
 
     [Command]
-    void CmdSubmitScore(int  score)
+    void CmdSubmitScore(int score)
     {
         RpcReceiveScore(score);
     }
@@ -574,7 +597,7 @@ public class UpdateLocalPlayer : NetworkBehaviour
 public static class JarvisMarchAlgorithm
 {
 
-    
+
 
 
 }

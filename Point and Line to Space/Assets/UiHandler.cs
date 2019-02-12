@@ -39,17 +39,12 @@ public class UiHandler : MonoBehaviour
 
     public void LoadTitleScreen()
     {
-
-        SceneManager.LoadScene("Title Screen");
+        //SceneManager.LoadScene("Title Screen");
 
         LobbyManager existingLobbyManager = GameObject.FindObjectOfType<LobbyManager>();
         if (existingLobbyManager != null)
         {
            existingLobbyManager.backDelegate();
-            //Destroy(existingLobbyManager.gameObject);
         }
-
-       // NetworkManager.Shutdown();
-
     }
 }
