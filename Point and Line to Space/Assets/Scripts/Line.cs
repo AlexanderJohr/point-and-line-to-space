@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Networking;
 
-public class Line : NetworkBehaviour
+public class Line : MonoBehaviour
 {
     public List<Intersection> Intersections { get; set; }
     public bool IsReleased
@@ -41,17 +41,11 @@ public class Line : NetworkBehaviour
     private Camera camera;
 
     private GameObject linePlane;
-    //private GameObject pointSphere1;
-    //private GameObject pointSphere2;
-    //private GameObject lineCylinder;
 
     public Material playerOneMaterial;
     public Material playerTwoMaterial;
-
     public Material preReleaseMaterial;
     public Material releaseImpossibleMaterial;
-
-
 
     private int _playerId;
 
@@ -105,7 +99,7 @@ public class Line : NetworkBehaviour
         }
     }
 
-
+    private bool _endPointChanged = false;
     public Vector3 EndPoint
     {
         get
@@ -114,46 +108,13 @@ public class Line : NetworkBehaviour
         }
         set
         {
-            _endPoint = value;
-
-            if (linePlane != null)//if (pointSphere2 != null && lineCylinder != null)
+            if (_endPoint != value)
             {
-                //pointSphere2.transform.position = _endPoint;
-
-                Vector3 lineDir = _endPoint - _startPoint;
-                float halfDirMagnitude = lineDir.magnitude / 2;
-
-                Vector3 centerBetweenStartAndEnd = _startPoint + (lineDir.normalized * halfDirMagnitude);
-                //lineCylinder.transform.position = centerBetweenStartAndEnd;
-                linePlane.transform.position = centerBetweenStartAndEnd;
-                //Vector3 lineDirUpVector = new Vector3(lineDir.x, lineDir.y, lineDir.z + 90);
-
-                //Quaternion dirRotation = Quaternion.LookRotation(lineDir);
-                //Quaternion dirRotationPlus90 = Quaternion.LookRotation(lineDir);
-                //Quaternion dirRotationZ90 = Quaternion.LookRotation(lineDir);
-
-
-                //Vector3 dirRotationEuler = dirRotationPlus90.eulerAngles;
-                //dirRotationEuler.x += 90;
-                //dirRotationPlus90 = Quaternion.Euler(dirRotationEuler);
-
-                //Vector3 dirRotationEulerZ90 = dirRotationZ90.eulerAngles;
-                //dirRotationEulerZ90.z = 90;
-                //dirRotationZ90 = Quaternion.Euler(dirRotationEulerZ90);
-
-                //lineCylinder.transform.rotation = dirRotationPlus90;
-                // linePlane.transform.rotation = dirRotationZ90;
-
-
-                //Vector3 cylinderLocalScale = lineCylinder.transform.localScale;
-                //cylinderLocalScale.y = lineDir.magnitude / 2;
-                //lineCylinder.transform.localScale = cylinderLocalScale;
-
-                Vector3 planeLocalScale = linePlane.transform.localScale;
-                planeLocalScale.z = lineDir.magnitude / 2 / 5;
-                linePlane.transform.localScale = planeLocalScale;
-
+                _endPoint = value;
+                _endPointChanged = true;
             }
+
+
         }
     }
 
@@ -175,13 +136,6 @@ public class Line : NetworkBehaviour
     {
         Intersections = new List<Intersection>();
 
-        //pointSphere1 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        //pointSphere1.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
-        //pointSphere2 = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        //pointSphere2.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
-        //lineCylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
-        //lineCylinder.transform.localScale = new Vector3(0.55f, 0.55f, 0.55f);
-
         linePlane = GameObject.CreatePrimitive(PrimitiveType.Plane);
         linePlane.transform.localScale = new Vector3(0.04f, 1f, 1f);
         linePlane.GetComponent<Renderer>().material = preReleaseMaterial;
@@ -189,16 +143,10 @@ public class Line : NetworkBehaviour
         if (_playerId == 1)
         {
             linePlane.GetComponent<Renderer>().material = playerOneMaterial;
-            //pointSphere1.GetComponent<Renderer>().material = playerOneMaterial;
-            //pointSphere2.GetComponent<Renderer>().material = playerOneMaterial;
-            //lineCylinder.GetComponent<Renderer>().material = playerOneMaterial;
         }
         else
         {
             linePlane.GetComponent<Renderer>().material = playerTwoMaterial;
-            //pointSphere1.GetComponent<Renderer>().material = playerTwoMaterial;
-            //pointSphere2.GetComponent<Renderer>().material = playerTwoMaterial;
-            //lineCylinder.GetComponent<Renderer>().material = playerTwoMaterial;
         }
 
         _updateVisibilities();
@@ -208,23 +156,38 @@ public class Line : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (camera != null && (_endPoint - _startPoint) != Vector3.zero)
+        if (camera != null)
         {
-            Vector3 projectedPoint = Vector3.Project(camera.transform.position - _startPoint, _endPoint - _startPoint) + _startPoint;
-            var lookRotation = Quaternion.LookRotation(camera.transform.position - projectedPoint, projectedPoint - _startPoint);
-            //var gizmoQuad = GameObject.CreatePrimitive(PrimitiveType.Quad);
-            //gizmoQuad.transform.position = projectedPoint;
-            //gizmoQuad.transform.rotation = lookRotation;
-            //GameObject.Destroy(gizmoQuad, 1);
+            if ((_endPoint - _startPoint) != Vector3.zero)
+            {
+                if (_endPointChanged)
+                {
+                    Vector3 projectedPoint = Vector3.Project(camera.transform.position - _startPoint, _endPoint - _startPoint) + _startPoint;
+                    var lookRotation = Quaternion.LookRotation(camera.transform.position - projectedPoint, projectedPoint - _startPoint);
 
-            var lookRotationPlane = Quaternion.LookRotation(_endPoint - _startPoint, camera.transform.position - projectedPoint);
-            linePlane.transform.rotation = lookRotationPlane;
+                    var lookRotationPlane = Quaternion.LookRotation(_endPoint - _startPoint, camera.transform.position - projectedPoint);
+                    linePlane.transform.rotation = lookRotationPlane;
+
+
+                    Vector3 lineDir = _endPoint - _startPoint;
+                    float halfDirMagnitude = lineDir.magnitude / 2;
+
+                    Vector3 centerBetweenStartAndEnd = _startPoint + (lineDir.normalized * halfDirMagnitude);
+                    linePlane.transform.position = centerBetweenStartAndEnd;
+
+                    Vector3 planeLocalScale = linePlane.transform.localScale;
+                    planeLocalScale.z = lineDir.magnitude / 2 / 5;
+                    linePlane.transform.localScale = planeLocalScale;
+
+                    _endPointChanged = false;
+                }
+            }
+
 
         }
         else
         {
             camera = Camera.current;
-
         }
 
         if (_dead)
@@ -275,9 +238,6 @@ public class Line : NetworkBehaviour
     private void OnDestroy()
     {
         GameObject.Destroy(linePlane);
-        //GameObject.Destroy(pointSphere1);
-        //GameObject.Destroy(pointSphere2);
-        //GameObject.Destroy(lineCylinder);
     }
 
     private bool _dead = false;
@@ -287,7 +247,7 @@ public class Line : NetworkBehaviour
     {
         linePlane.GetComponent<Renderer>().material = releaseImpossibleMaterial;
         _dead = true;
-        GameObject.Destroy(this,1);
+        GameObject.Destroy(this, 1);
     }
 
     public int Id { get; set; }

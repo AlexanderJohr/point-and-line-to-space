@@ -42,7 +42,7 @@ public class UpdateLocalPlayer : NetworkBehaviour
 
             data.CurrentLine = null;
             data.CurrentNetworkLine = null;
-            data.OtherPlayerScore = 0;
+            data.OtherPlayerScore = -1;
 
             data.otherPlayerLines = new Dictionary<int, Line>();
             data.localPlayerLines = new Dictionary<int, Line>();
@@ -60,18 +60,19 @@ public class UpdateLocalPlayer : NetworkBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (!isLocalPlayer || data.GameOver) return;
+        if (!isLocalPlayer) return;
 
-        data.RemainingSeconds -= Time.deltaTime;
-
-        if (data.RemainingSeconds < 20)
+        if (data.RemainingSeconds > 0)
         {
+            data.RemainingSeconds -= Time.deltaTime;
         }
+
+        if (data.GameOver) return;
 
         if (data.RemainingSeconds < 0)
         {
-            data.GameOver = true;
             CmdSubmitScore((int)data.Score);
+            data.GameOver = true;
         }
 
 
@@ -406,7 +407,6 @@ public class UpdateLocalPlayer : NetworkBehaviour
         if (!isLocalPlayer)
         {
             data.OtherPlayerScore = score;
-
         }
     }
 
@@ -441,10 +441,13 @@ public class UpdateLocalPlayer : NetworkBehaviour
     {
         if (!isLocalPlayer)
         {
-            Line line = data.otherPlayerLines[id];
+            if (data.otherPlayerLines.ContainsKey(id))
+            {
+                Line line = data.otherPlayerLines[id];
 
-            line.StartPoint = startPoint;
-            line.EndPoint = endPoint;
+                line.StartPoint = startPoint;
+                line.EndPoint = endPoint;
+            }
         }
     }
 
@@ -459,6 +462,7 @@ public class UpdateLocalPlayer : NetworkBehaviour
     {
         foreach (var l in data.otherPlayerLines.Values)
         {
+            l.Die();
             GameObject.Destroy(l);
         }
         data.otherPlayerLines.Clear();
@@ -475,8 +479,13 @@ public class UpdateLocalPlayer : NetworkBehaviour
     {
         if (!isLocalPlayer)
         {
-            GameObject.Destroy(data.otherPlayerLines[id]);
-            data.otherPlayerLines.Remove(id);
+            if (data.otherPlayerLines.ContainsKey(id))
+            {
+                data.otherPlayerLines[id].Die();
+                GameObject.Destroy(data.otherPlayerLines[id], 1);
+                data.otherPlayerLines.Remove(id);
+            }
+
         }
     }
 

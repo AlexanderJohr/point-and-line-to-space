@@ -16,19 +16,19 @@ public class BackgroundAudioMixerControl : ScriptableObject {
         switch (track)
         {
             case 0:
-                snapshotMenu.TransitionTo(.1f);
+                snapshotMenu.TransitionTo(.01f);
                 break;
             case 1:
-                snapshot1.TransitionTo(.1f);
+                snapshot1.TransitionTo(.01f);
                 break;
             case 2:
-                snapshot2.TransitionTo(.1f);
+                snapshot2.TransitionTo(.01f);
                 break;
             case 3:
-                snapshot3.TransitionTo(.1f);
+                snapshot3.TransitionTo(.01f);
                 break;
             case 4:
-                snapshot4.TransitionTo(.1f);
+                snapshot4.TransitionTo(.01f);
                 break;
         }
     }

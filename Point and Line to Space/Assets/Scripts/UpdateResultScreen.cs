@@ -16,42 +16,41 @@ public class UpdateResultScreen : MonoBehaviour
 
     public PlayerData playerData;
     private Text text;
-    // Use this for initialization
     void Start()
     {
         text = GetComponent<Text>();
     }
 
-    // Update is called once per frame
     void Update()
     {
-        if (playerData.GameOver)
+        if (playerData.OtherPlayerScore != -1)
         {
-            if (playerData.Score > playerData.OtherPlayerScore)
+            if (playerData.GameOver)
             {
-                winFx.SetActive(true);
-                winLoseText.color = new Color(194,0,0);
-                winLoseText.text = "You Win!";
+                if (playerData.Score > playerData.OtherPlayerScore)
+                {
+                    winFx.SetActive(true);
+                    winLoseText.color = new Color(194, 0, 0);
+                    winLoseText.text = "You Win!";
 
-                scoreText.color = new Color(194, 0, 0);
-                scoreText.text = playerData.Score.ToString("F0");
+                    scoreText.color = new Color(194, 0, 0);
+                    scoreText.text = playerData.Score.ToString("F0");
 
-                opponentScoreText.text = playerData.OtherPlayerScore.ToString("F0");
+                    opponentScoreText.text = playerData.OtherPlayerScore.ToString("F0");
 
-            }
-            else
-            {
-                loseFx.SetActive(true);
+                }
+                else
+                {
+                    loseFx.SetActive(true);
 
-                winLoseText.color = new Color(0, 0, 194);
-                winLoseText.text = "You Lose!";
+                    winLoseText.color = new Color(0, 0, 194);
+                    winLoseText.text = "You Lose!";
 
-                scoreText.color = new Color(0, 0, 194);
-                scoreText.text = playerData.Score.ToString("F0");
+                    scoreText.color = new Color(0, 0, 194);
+                    scoreText.text = playerData.Score.ToString("F0");
 
-                opponentScoreText.text = playerData.OtherPlayerScore.ToString("F0");
-
-
+                    opponentScoreText.text = playerData.OtherPlayerScore.ToString("F0");
+                }
             }
         }
     }
