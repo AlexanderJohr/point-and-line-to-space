@@ -16,7 +16,7 @@ public class UpdateInkBar : MonoBehaviour {
 
     void Update()
     {
-        float remainingInk = playerData.Ink - playerData.InkNeededForCurrentLine;
+        float remainingInk = playerData.Ink; //  - playerData.InkNeededForCurrentLine
         Vector3 oldScale = bar.rectTransform.localScale;
         var inkBarHeight = Mathf.Max(remainingInk / 100, 0);
 

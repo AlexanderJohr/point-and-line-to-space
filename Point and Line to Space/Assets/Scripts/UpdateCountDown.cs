@@ -18,11 +18,10 @@ public class UpdateCountDown : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-        text.text = "TIME: " + Mathf.Ceil(playerData.RemainingSeconds).ToString();
+        text.text = Mathf.Ceil(playerData.RemainingSeconds).ToString();
         if (!timeLabelAlreadyUpdated) {
             if (playerData.RemainingSeconds < 20)
             {
-                text.fontSize = 60;
                 text.color = Color.red;
                 timeLabelAlreadyUpdated = true;
             }
