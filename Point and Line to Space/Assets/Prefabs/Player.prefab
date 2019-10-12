@@ -170,6 +170,8 @@ MonoBehaviour:
     type: 2}
   backgroundAudioMixerControl: {fileID: 11400000, guid: 6144e5dc45b73ed40b67190ebcf8dd44,
     type: 2}
+  scorePrefab: {fileID: 1765767530756764, guid: dd79a85b1fc19734e9986bea3d06999a,
+    type: 2}
 --- !u!114 &114888579942683500
 MonoBehaviour:
   m_ObjectHideFlags: 1

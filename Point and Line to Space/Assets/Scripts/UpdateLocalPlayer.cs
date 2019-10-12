@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.Networking;
+using UnityEngine.UI;
 
 public class UpdateLocalPlayer : NetworkBehaviour
 {
@@ -18,8 +19,14 @@ public class UpdateLocalPlayer : NetworkBehaviour
     public Line linePrefab;
     public BackgroundAudioMixerControl backgroundAudioMixerControl;
 
+    private GameObject scoreCanvas;
+    public GameObject scorePrefab;
+
     void Start()
     {
+        scoreCanvas = GameObject.Find("Score Canvas");
+
+
 
         if (isLocalPlayer)
         {
@@ -57,7 +64,6 @@ public class UpdateLocalPlayer : NetworkBehaviour
 
     }
 
-    // Update is called once per frame
     void Update()
     {
         if (!isLocalPlayer) return;
@@ -281,6 +287,16 @@ public class UpdateLocalPlayer : NetworkBehaviour
             if (score > 2)
             {
                 data.Score += score;
+                GameObject scoreText = GameObject.Instantiate(scorePrefab, scoreCanvas.transform);
+                Text scoreTextAsText = scoreText.GetComponent<Text>();
+
+                RectTransform scoreTextTransform = scoreText.GetComponent<RectTransform>();
+
+                scoreTextAsText.text = score.ToString("F0");
+                Vector3 average = convexHull3D.Aggregate((a, b) => a + b) / convexHull3D.Length;
+
+
+                scoreTextTransform.position = screenCamera.WorldToScreenPoint(average);
 
                 Shape shape = Instantiate(shapePrefab);
                 shape.PlayerId = 1;

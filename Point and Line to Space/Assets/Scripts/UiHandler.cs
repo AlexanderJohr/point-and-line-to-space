@@ -8,6 +8,8 @@ using UnityEngine.SceneManagement;
 
 public class UiHandler : MonoBehaviour
 {
+    [SerializeField]
+    private GameObject _tutorialScreen;
 
     public void TabScreenToStart()
     {
@@ -39,12 +41,25 @@ public class UiHandler : MonoBehaviour
 
     public void LoadTitleScreen()
     {
-        //SceneManager.LoadScene("Title Screen");
+        SceneManager.LoadScene("Title Screen");
+    }
 
+    public void NewMatch()
+    {
         LobbyManager existingLobbyManager = GameObject.FindObjectOfType<LobbyManager>();
         if (existingLobbyManager != null)
         {
-           existingLobbyManager.backDelegate();
+            existingLobbyManager.SendReturnToLobby();
         }
+    }
+
+    public void OpenTutorial()
+    {
+        _tutorialScreen.SetActive(true);
+    }
+
+    public void CloseTutorial()
+    {
+        _tutorialScreen.SetActive(false);
     }
 }
